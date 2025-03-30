@@ -8420,6 +8420,29 @@ static void ffi_PDFPage_process(js_State *J)
 		rethrow(J);
 }
 
+static void ffi_PDFObject_process(js_State *J)
+{
+	fz_context *ctx = js_getcontext(J);
+	pdf_obj *obj = js_touserdata(J, 0, "pdf_obj");
+	pdf_processor *proc = new_js_processor(ctx, J);
+	// The processor must be the 1st arg, because of how PROC_BEGIN/PROC_END are
+	pdf_document *doc = js_touserdata(J, 2, "pdf_document");
+
+	fz_try(ctx)
+	{
+		pdf_obj *resources = pdf_dict_get_inheritable(ctx, obj, PDF_NAME(Resources));
+		pdf_process_contents(ctx, proc, doc, resources, obj, NULL, NULL);
+		pdf_close_processor(ctx, proc);
+	}
+	fz_always(ctx)
+	{
+		pdf_drop_processor(ctx, proc);
+		js_pop(J, 2);
+	}
+	fz_catch(ctx)
+		rethrow(J);
+}
+
 static void ffi_PDFPage_toPixmap(js_State *J)
 {
 	fz_context *ctx = js_getcontext(J);
@@ -11599,6 +11622,7 @@ int murun_main(int argc, char **argv)
 		jsB_propfun(J, "PDFObject.forEach", ffi_PDFObject_forEach, 1);
 		jsB_propfun(J, "PDFObject.compare", ffi_PDFObject_compare, 1);
 		jsB_propfun(J, "PDFObject.isFilespec", ffi_PDFObject_isFilespec, 0);
+		jsB_propfun(J, "PDFObject.process", ffi_PDFObject_process, 1); // Big lie. We get two arguments, but drop one. See body for more info.
 	}
 	js_setregistry(J, "pdf_obj");
 
