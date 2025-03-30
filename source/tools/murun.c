@@ -2424,7 +2424,13 @@ static void push_byte_string(js_State *J, unsigned char *str, size_t len)
 		if (str[i] == 0 || str[i] > 127)
 			is_ascii = 0;
 	if (is_ascii)
+	{
+		// Respect string length
+		unsigned char old_end = str[len];
+		str[len] = '\0';
 		js_pushstring(J, (char*)str);
+		str[len] = old_end;
+	}
 	else
 	{
 		js_newarray(J);
